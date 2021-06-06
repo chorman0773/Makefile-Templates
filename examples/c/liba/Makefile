@@ -69,7 +69,7 @@ DEPFILES = $(OBJECTS:.o=.o.d)
 
 all: stamp
 
-.PHONY: all clean install install-headers install-libs $(foreach targ,$(OUTPUTS),install-${targ})
+.PHONY: all clean install install-headers install-libs
 
 
 stamp: $(OUTPUTS)
@@ -85,7 +85,7 @@ $(OUTDIR)/%.o.d: $(SRCDIR)/%.c | $(OUTDIR)/
 	$(CC) $(ALL_CPPFLAGS) -M -MT $(OUTDIR)/$*.o -MF $@ $<
 
 $(OUTDIR)/%.o: $(SRCDIR)/%.c $(OUTDIR)/%.o.d 
-	$(CC) $(ALL_CPPFLAGS) -MD -MT $@ -MF $@.d -c $< -o $@ 
+	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -MD -MT $@ -MF $@.d -c $< -o $@ 
 
 include $(DEPFILES)
 
@@ -102,13 +102,9 @@ clean:
 
 install: install-headers install-libs
 
-install-libs: $(foreach targ,$(OUTPUTS),install-$(targ))
-
-install-%.a:
-	$(INSTALL) -m644  $*.a $(libdir)/
-
-install-%.so:
-	$(INSTALL) -m755 $*.so $(libdir)/
+install-libs: $(OUTPUTS)
+	$(INSTALL) -m644 $(filter %.a,$(OUTPUTS)) $(libdir)/
+	$(INSTALL) -m755 $(filter %.so,$(OUTPUTS)) $(libdir)/
 
 install-headers:
 	$(INSTALL) -m644 -t $(includedir)/ $(INSTALL_HEADERS)

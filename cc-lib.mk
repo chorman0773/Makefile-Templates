@@ -85,28 +85,33 @@ $(OUTDIR)/%.o.d: $(SRCDIR)/%.c | $(OUTDIR)/
 	$(CC) $(ALL_CPPFLAGS) -M -MT $(OUTDIR)/$*.o -MF $@ $<
 
 $(OUTDIR)/%.o: $(SRCDIR)/%.c $(OUTDIR)/%.o.d 
-	$(CC) $(ALL_CPPFLAGS) -MD -MT $@ -MF $@.d -c $< -o $@ 
+	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -MD -MT $@ -MF $@.d -c $< -o $@ 
 
 include $(DEPFILES)
 
-$(OUTDIR)/:
+$(OUTDIR)/: $(SUBDIRS:%=%/)
 	mkdir $@
 
 $(SUBDIRS:%=%/): %/: %/stamp
 
 %/stamp: 
-	make -C $(@D) stamp
+	+$(MAKE) -C $* stamp
 
-clean:
-	rm -rf $(OUTPUTS) $(OUTDIR)/
+%/clean: 
+	+$(MAKE) -C $* clean
 
-install: install-headers $(foreach targ,$(OUTPUTS),install-${targ})
+%/install: 
+	+$(MAKE) -C $* install
 
-install-%.a:
-	$(INSTALL) -m644  $*.a $(libdir)/
+clean: $(SUBDIRS:%=%/clean)
+	rm -rf stamp $(OUTPUTS) $(OUTDIR)/
 
-install-%.so:
-	$(INSTALL) -m755 $*.so $(libdir)/
+install: install-headers install-libs $(SUBDIRS:%=%/install)
+
+install-libs:
+	$(INSTALL) -m644 $(filter %.a,$(OUTPUTS)) $(libdir)/
+	$(INSTALL) -m755 $(filter %.so,$(OUTPUTS)) $(libdir)/
+
 
 install-headers:
 	$(INSTALL) -m644 -t $(includedir)/ $(INSTALL_HEADERS)
