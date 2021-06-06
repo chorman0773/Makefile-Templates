@@ -15,8 +15,7 @@ INSTALL := install
 
 prefix := /usr/local
 exec_prefix := $(prefix)
-libdir := $(exec_prefix)/lib
-includedir := $(prefix)/include
+bindir := $(exec_prefix)/bin
 
 
 ## Program Specific Variables Here
@@ -76,11 +75,9 @@ all: stamp
 stamp: $(OUTPUTS)
 	touch stamp
 
-$(filter %.so,$(OUTPUTS)): %.so: $(OBJECTS) $(EXTERN_LIBS)
-	$(CC) $(ALL_CFLAGS) $(ALL_LDFLAGS) -shared -o $@ $^ $(foreach lib,$(LIBS),-l$(lib))
+$(OUTPUTS): %: $(OBJECTS) $(EXTERN_LIBS)
+	$(CC) $(ALL_CFLAGS) $(ALL_LDFLAGS) -o $@ $^ $(foreach lib,$(LIBS),-l$(lib))
 
-$(filter %.a,$(OUTPUTS)): %.a: $(OBJECTS)
-	$(AR) rcs $@ $^
 
 $(OUTDIR)/%.o.d: $(SRCDIR)/%.c | $(OUTDIR)/
 	$(CC) $(ALL_CPPFLAGS) -M -MT $(OUTDIR)/$*.o -MF $@ $<
@@ -107,12 +104,6 @@ $(SUBDIRS:%=%/): %/: %/stamp
 clean: $(SUBDIRS:%=%/clean)
 	rm -rf stamp $(OUTPUTS) $(OUTDIR)/
 
-install: install-headers install-libs $(SUBDIRS:%=%/install)
+install: $(SUBDIRS:%=%/install)
+	$(INSTALL) -m755 $(OUTPUTS) $(bindir)/
 
-install-libs:
-	$(INSTALL) -m644 $(filter %.a,$(OUTPUTS)) $(libdir)/
-	$(INSTALL) -m755 $(filter %.so,$(OUTPUTS)) $(libdir)/
-
-
-install-headers:
-	$(INSTALL) -m644 -t $(includedir)/ $(INSTALL_HEADERS)

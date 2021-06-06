@@ -1,4 +1,4 @@
-# Makefile template for (non-autotools) C projects
+# Makefile template for (non-autotools) C++ projects
 
 
 
@@ -6,8 +6,8 @@
 #
 CC := cc
 CXX := c++
-CFLAGS :=
-CXXFLAGS := 
+CFLAGS := -O2
+CXXFLAGS := -O2 
 LDFLAGS :=
 CPPFLAGS := 
 
@@ -58,6 +58,10 @@ INSTALL_HEADERS =
 OUTPUTS =
 
 
+## Special Rules
+# Add any additional rules that need to be run here
+
+
 ## Computed Variables
 # Do not not modify below this line
 
@@ -69,10 +73,13 @@ ALL_LDFLAGS = $(EXTRA_LD_FLAGS) $(foreach libdir,$(LIBDIRS),-L $(libdir))
 
 DEPFILES = $(OBJECTS:.o=.o.d)
 
+
 ## Rules
 # Do not modify below this line
 
 all: stamp
+
+.DEFAULT: all
 
 .PHONY: all clean install install-headers install-libs
 
@@ -80,11 +87,8 @@ all: stamp
 stamp: $(OUTPUTS)
 	touch stamp
 
-$(filter %.so,$(OUTPUTS)): %.so: $(OBJECTS) $(EXTERN_LIBS)
-	$(CXX) $(ALL_CXXFLAGS) $(ALL_LDFLAGS) -shared -o $@ $^ $(foreach lib,$(LIBS),-l$(lib))
-
-$(filter %.a,$(OUTPUTS)): %.a: $(OBJECTS)
-	$(AR) rcs $@ $^
+$(OUTPUTS): %: $(OBJECTS) $(EXTERN_LIBS)
+	$(CXX) $(ALL_CXXFLAGS) $(ALL_LDFLAGS) -o $@ $^ $(foreach lib,$(LIBS),-l$(lib))
 
 $(OUTDIR)/%.o.d: $(SRCDIR)/%.c | $(OUTDIR)/
 	$(CC) $(ALL_CPPFLAGS) -M -MT $(OUTDIR)/$*.o -MF $@ $<
@@ -123,12 +127,6 @@ $(SUBDIRS:%=%/): %/: %/stamp
 clean: $(SUBDIRS:%=%/clean)
 	rm -rf stamp $(OUTPUTS) $(OUTDIR)/
 
-install: install-headers install-libs $(SUBDIRS:%=%/install)
+install: $(SUBDIRS:%=%/install)
+	$(INSTALL) -m755 $(OUTPUTS) $(bindir)/
 
-
-install-libs:
-	$(INSTALL) -m644 $(filter %.a,$(OUTPUTS)) $(libdir)/
-	$(INSTALL) -m755 $(filter %.so,$(OUTPUTS)) $(libdir)/
-
-install-headers:
-	$(INSTALL) -m644 -t $(includedir)/ $(INSTALL_HEADERS)
